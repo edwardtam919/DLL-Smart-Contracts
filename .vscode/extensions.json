@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "nespinozacr.mysql-autocomplete",
+        "formulahendry.vscode-mysql"
+    ]
+}

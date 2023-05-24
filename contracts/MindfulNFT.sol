@@ -7,22 +7,29 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+
+// declare burn interface
+interface burnMintPass{
+  function burn(uint256 tokenId) external;
+}
 
 contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981, DefaultOperatorFilterer {
     
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIdCounter;
-    using ECDSA for bytes32;
-    address private systemAddress;
-    IERC721 private mintPass;
+    address private mintPass;
+    string private baseURILink;
+    uint96 private loyaltyFee;
 
-    // constructor takes the systemAddress for signature verification and mintPass contract address for checking burn status
-    constructor(address _systemAddress, IERC721 _mintPass) ERC721("MindfulNFT", "MINDFUL") {
-        systemAddress = _systemAddress;
+    constructor(address _mintPass, string memory _baseURILink, uint96 _loyaltyFee) ERC721("MindfulNFT", "MINDFUL") {
         mintPass = _mintPass;
+        baseURILink = _baseURILink;
+        loyaltyFee = _loyaltyFee;
+    }
+
+    // set base URI
+    function _baseURI() internal view override returns (string memory) {
+        return baseURILink;
     }
 
     // pause minting action
@@ -35,56 +42,36 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
         _unpause();
     }
 
-    function recoverSigner(bytes32 hash, bytes memory signature) public pure returns (address) {
-        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
-        return ECDSA.recover(messageDigest, signature);
-    }
-
-
-    // mint Metaverse NFT
-    function mintMindfulNFT(address recipient, string memory uri, address royaltFeeReceiver, uint96 fee, uint256 mintPassId, bytes32 hash, bytes memory signature) public returns(uint256){      
+    //function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
+    function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata) external returns(bytes4) {
 
         bool isBurned = false;
-        address NFTOwner;
 
-        // check signature
-        require(recoverSigner(hash, signature) == systemAddress, "Signature Failed");
-
-        // check if MintPass is burned
-        try mintPass.ownerOf(mintPassId) returns (address result) {
-            NFTOwner = result;
+        // can only accept call from mintpass smart contract
+        require(msg.sender == mintPass, "Can receive only from MintPass");
+    
+        // burn the NFT received
+        burnMintPass mintPassContract = burnMintPass(mintPass);
+        try mintPassContract.burn(_tokenId){
+            isBurned = true;
+        } catch Error(string memory) {
             isBurned = false;
-        } catch Error(string memory /*reason*/) {
-            isBurned = true;
-        } catch (bytes memory /*lowLevelData*/) {
-            isBurned = true;
+        } catch (bytes memory) {
+            isBurned = false;
         }
         require(isBurned, "MintPass not burned");
 
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-
-        // set tokeID & recipient
-        _safeMint(recipient, tokenId);
-
-        // set metadata
-        _setTokenURI(tokenId, uri);
+        // mint the new one
+        _safeMint(_from, _tokenId);
 
         // set loyalty fee
-        _setTokenRoyalty(tokenId, royaltFeeReceiver, fee);
-
-        return tokenId;
+        _setTokenRoyalty(_tokenId, _from, loyaltyFee);
+    
+        // import @openzeppelin/contracts/token/ERC721/IERC721Receiver.sol
+        return IERC721Receiver.onERC721Received.selector;
     }
 
     // The following functions are overrides required by Solidity.
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        //override(ERC721, ERC721Enumerable)
-        override(ERC721)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
 
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);

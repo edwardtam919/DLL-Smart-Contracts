@@ -18,12 +18,32 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
     using ECDSA for bytes32;
-    address private systemAddress;
     using SafeMath for uint256;
 
-    // constructor takes the systemAddress for signature verification
-    constructor(address _systemAddress) ERC721("MintPass", "MPASS") {
+    address private systemAddress;
+    address private mintingFeeRecipient;
+    string private baseURILink;
+    uint256 private mintingFee;
+    uint96 private loyaltyFee;
+
+    // constructor takes the systemAddress (for signature verification), minting recipient, base URI, minting fee & loyalty fee
+    constructor(address _systemAddress, address _mintingFeeRecipient, string memory _baseURILink, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
         systemAddress = _systemAddress;
+        mintingFeeRecipient = _mintingFeeRecipient;
+        baseURILink = _baseURILink;
+        mintingFee = _mintingFee;
+        loyaltyFee = _loyaltyFee;
+    }
+
+    // recover Signer from hash & signature
+    function recoverSigner(bytes32 hash, bytes memory signature) private pure returns (address) {
+        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
+        return ECDSA.recover(messageDigest, signature);
+    }
+
+    // set base URI
+    function _baseURI() internal view override returns (string memory) {
+        return baseURILink;
     }
 
     // pause minting action
@@ -36,49 +56,30 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         _unpause();
     }
 
-    // recover Signer from hash & signature
-    function recoverSigner(bytes32 hash, bytes memory signature) public pure returns (address) {
-        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
-        return ECDSA.recover(messageDigest, signature);
-    }
-
     // mint Metaverse NFT
-    function mintMintPass(address recipient, string memory uri, address royaltFeeReceiver, uint96 fee, bytes32 hash, bytes memory signature) public payable returns(uint256){
+    function mintMintPass(bytes32 hash, bytes memory signature) public payable returns(uint256){
 
         // check signature
         require(recoverSigner(hash, signature) == systemAddress, "Signature Failed");
 
-        //define mint price
-        require(msg.value >= 100000000000000, "Not enough MATIC sent; check price!"); 
-        payable(address(0x1f6A403347fd2d335d14Dc3f1AEb21D9192cF166)).transfer(100000000000000);
-
+        // transfer minting fee to the defined wallet
+        require(msg.value >= mintingFee, "Not enough MATIC sent; check price!"); 
+        payable(address(mintingFeeRecipient)).transfer(mintingFee);
 
         // set tokeID & recipient        
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        _safeMint(recipient, tokenId);
-
-        // set metadata
-        _setTokenURI(tokenId, uri);
+        _safeMint(msg.sender, tokenId);
 
         // set loyalty fee
-        _setTokenRoyalty(tokenId, royaltFeeReceiver, fee);
+        _setTokenRoyalty(tokenId, msg.sender, loyaltyFee);
 
         return tokenId;
     }
 
-
     // The following functions are overrides required by Solidity.
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        whenNotPaused
-        override(ERC721)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
 
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-    //function _burn(uint256 tokenId) external override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
 

@@ -10,26 +10,22 @@ import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-// declare burn interface
+// declare burn & tokenURI interface
 interface burnMintPass{
   function burn(uint256 tokenId) external;
+  function tokenURI(uint256 tokenId) external view returns(string memory);
 }
 
 contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981, DefaultOperatorFilterer {
     
     address private mintPass;
-    string private baseURILink;
+    //string private baseURILink;
     uint96 private loyaltyFee;
 
-    constructor(address _mintPass, string memory _baseURILink, uint96 _loyaltyFee) ERC721("MindfulNFT", "MINDFUL") {
+    constructor(address _mintPass, uint96 _loyaltyFee) ERC721("MindfulNFT", "MINDFUL") {
         mintPass = _mintPass;
-        baseURILink = _baseURILink;
+        //baseURILink = _baseURILink;
         loyaltyFee = _loyaltyFee;
-    }
-
-    // set base URI
-    function _baseURI() internal view override returns (string memory) {
-        return baseURILink;
     }
 
     // pause minting action
@@ -42,16 +38,19 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
         _unpause();
     }
 
-    //function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
     function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata) external returns(bytes4) {
 
         bool isBurned = false;
+        string memory url;
 
         // can only accept call from mintpass smart contract
         require(msg.sender == mintPass, "Can receive only from MintPass");
     
-        // burn the NFT received
+        // create the interface
         burnMintPass mintPassContract = burnMintPass(mintPass);
+        url = mintPassContract.tokenURI(_tokenId);     
+
+         // burn the NFT received   
         try mintPassContract.burn(_tokenId){
             isBurned = true;
         } catch Error(string memory) {
@@ -66,8 +65,10 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
 
         // set loyalty fee
         _setTokenRoyalty(_tokenId, _from, loyaltyFee);
-    
-        // import @openzeppelin/contracts/token/ERC721/IERC721Receiver.sol
+
+        // set token URI
+        _setTokenURI(_tokenId, url);
+
         return IERC721Receiver.onERC721Received.selector;
     }
 

@@ -22,15 +22,16 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
 
     address private systemAddress;
     address private mintingFeeRecipient;
-    string private baseURILink;
+    //string private baseURILink;
     uint256 private mintingFee;
     uint96 private loyaltyFee;
 
     // constructor takes the systemAddress (for signature verification), minting recipient, base URI, minting fee & loyalty fee
-    constructor(address _systemAddress, address _mintingFeeRecipient, string memory _baseURILink, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
+    //constructor(address _systemAddress, address _mintingFeeRecipient, string memory _baseURILink, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
+    constructor(address _systemAddress, address _mintingFeeRecipient, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
         systemAddress = _systemAddress;
         mintingFeeRecipient = _mintingFeeRecipient;
-        baseURILink = _baseURILink;
+        //baseURILink = _baseURILink;
         mintingFee = _mintingFee;
         loyaltyFee = _loyaltyFee;
     }
@@ -42,9 +43,9 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
     }
 
     // set base URI
-    function _baseURI() internal view override returns (string memory) {
-        return baseURILink;
-    }
+    //function _baseURI() internal view override returns (string memory) {
+    //    return baseURILink;
+    //}
 
     // pause minting action
     function pause() public onlyOwner {
@@ -57,7 +58,7 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
     }
 
     // mint Metaverse NFT
-    function mintMintPass(bytes32 hash, bytes memory signature) public payable returns(uint256){
+    function mintMintPass(bytes32 hash, bytes memory signature, string memory uri) public payable returns(uint256){
 
         // check signature
         require(recoverSigner(hash, signature) == systemAddress, "Signature Failed");
@@ -73,6 +74,9 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
 
         // set loyalty fee
         _setTokenRoyalty(tokenId, msg.sender, loyaltyFee);
+
+        // set token URI
+        _setTokenURI(tokenId, uri);
 
         return tokenId;
     }

@@ -38,8 +38,8 @@ npx hardhat run scripts/deploymindfulnft.ts --network polytestnet
 - Verify
 npx hardhat verify --network polytestnet {contract_address} {constructor args}
 
-e.g. npx hardhat verify --network polytestnet 0x3976432bE199E87E0DBFF1bEc7B7503684C7416b "0x4BCC679c78E2C6D724E49B2F59f0F3B0565854D9"
-npx hardhat verify --network polytestnet 0x6374A256974F04F126bB7af07d390D8786e354B3 "0x4BCC679c78E2C6D724E49B2F59f0F3B0565854D9" "0x3976432bE199E87E0DBFF1bEc7B7503684C7416b"
+e.g. npx hardhat verify --network polytestnet 0xb67d4B2C967D4aA6c148CDB9bBc43e19E673669E "0x4BCC679c78E2C6D724E49B2F59f0F3B0565854D9" "0x1f6A403347fd2d335d14Dc3f1AEb21D9192cF166" 100000000000000 100
+npx hardhat verify --network polytestnet 0xD483d0DE39b3BA9F0cc0D41E853b67a0cc99CF38 "0x91C25E22e131Ae298d291307116FDB054838dc5C" 100
 
 --------------
 - Interacting with smart contract

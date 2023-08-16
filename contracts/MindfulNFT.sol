@@ -38,17 +38,18 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
         _unpause();
     }
 
-    function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata) external returns(bytes4) {
+    function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
 
         bool isBurned = false;
-        string memory url;
+        //string memory url;
+        string memory url = string(_data);
 
         // can only accept call from mintpass smart contract
         require(msg.sender == mintPass, "Can receive only from MintPass");
     
         // create the interface
         burnMintPass mintPassContract = burnMintPass(mintPass);
-        url = mintPassContract.tokenURI(_tokenId);     
+        //url = mintPassContract.tokenURI(_tokenId);     
 
          // burn the NFT received   
         try mintPassContract.burn(_tokenId){

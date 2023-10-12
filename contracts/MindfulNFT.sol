@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
-import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 // declare burn & tokenURI interface
@@ -16,15 +15,13 @@ interface burnMintPass{
   function tokenURI(uint256 tokenId) external view returns(string memory);
 }
 
-contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981, DefaultOperatorFilterer {
+contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981 {
     
     address private mintPass;
-    //string private baseURILink;
     uint96 private loyaltyFee;
 
     constructor(address _mintPass, uint96 _loyaltyFee) ERC721("MindfulNFT", "MINDFUL") {
         mintPass = _mintPass;
-        //baseURILink = _baseURILink;
         loyaltyFee = _loyaltyFee;
     }
 
@@ -41,15 +38,13 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
     function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
 
         bool isBurned = false;
-        //string memory url;
         string memory url = string(_data);
 
         // can only accept call from mintpass smart contract
         require(msg.sender == mintPass, "Can receive only from MintPass");
     
         // create the interface
-        burnMintPass mintPassContract = burnMintPass(mintPass);
-        //url = mintPassContract.tokenURI(_tokenId);     
+        burnMintPass mintPassContract = burnMintPass(mintPass);    
 
          // burn the NFT received   
         try mintPassContract.burn(_tokenId){
@@ -74,7 +69,6 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
     }
 
     // The following functions are overrides required by Solidity.
-
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
@@ -96,30 +90,6 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
-    }
-
-    function setApprovalForAll(address operator, bool approved) public override onlyAllowedOperatorApproval(operator) {
-        super.setApprovalForAll(operator, approved);
-    }
-
-    function approve(address operator, uint256 tokenId) public override onlyAllowedOperatorApproval(operator) {
-        super.approve(operator, tokenId);
-    }
-
-    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
-        super.transferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
-        super.safeTransferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
-        public
-        override
-        onlyAllowedOperator(from)
-    {
-        super.safeTransferFrom(from, to, tokenId, data);
     }
 
 }

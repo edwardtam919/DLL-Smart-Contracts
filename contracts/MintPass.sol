@@ -8,13 +8,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; // IERC20 interface
 
-contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981, DefaultOperatorFilterer {
-    
+contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
     using ECDSA for bytes32;
@@ -25,12 +23,13 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
     //string private baseURILink;
     uint256 private mintingFee;
     uint96 private loyaltyFee;
+    address contractOwner;
 
     event tokenIdMinted(uint256 indexed tokenId);
 
     // constructor takes the systemAddress (for signature verification), minting recipient, base URI, minting fee & loyalty fee
-    //constructor(address _systemAddress, address _mintingFeeRecipient, string memory _baseURILink, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
     constructor(address _systemAddress, address _mintingFeeRecipient, uint256 _mintingFee,  uint96 _loyaltyFee) ERC721("MintPass", "MPASS") {
+        contractOwner = msg.sender;
         systemAddress = _systemAddress;
         mintingFeeRecipient = _mintingFeeRecipient;
         //baseURILink = _baseURILink;
@@ -44,11 +43,6 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         return ECDSA.recover(messageDigest, signature);
     }
 
-    // set base URI
-    //function _baseURI() internal view override returns (string memory) {
-    //    return baseURILink;
-    //}
-
     // pause minting action
     function pause() public onlyOwner {
         _pause();
@@ -59,9 +53,19 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         _unpause();
     }
 
+    // set minting fee
+    function setMintingFee(uint256 _mintingFee) public  {
+        require(contractOwner == msg.sender);
+        mintingFee = _mintingFee;
+    }
+
+    // get minting fee
+    function getMintingFee() public view returns (uint256) {
+        return mintingFee;
+    }
+
     // mint Metaverse NFT
     function mintMintPass(bytes32 hash, bytes memory signature, string memory uri) public payable returns(uint256){
-    //function mintMintPass(string memory uri) public payable returns(uint256){
 
         // check signature
         require(recoverSigner(hash, signature) == systemAddress, "Signature Failed");
@@ -108,30 +112,6 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
-    }
-
-    function setApprovalForAll(address operator, bool approved) public override onlyAllowedOperatorApproval(operator) {
-        super.setApprovalForAll(operator, approved);
-    }
-
-    function approve(address operator, uint256 tokenId) public override onlyAllowedOperatorApproval(operator) {
-        super.approve(operator, tokenId);
-    }
-
-    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
-        super.transferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
-        super.safeTransferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
-        public
-        override
-        onlyAllowedOperator(from)
-    {
-        super.safeTransferFrom(from, to, tokenId, data);
     }
 
 }

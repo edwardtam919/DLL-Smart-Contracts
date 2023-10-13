@@ -20,7 +20,6 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
 
     address private systemAddress;
     address private mintingFeeRecipient;
-    //string private baseURILink;
     uint256 private mintingFee;
     uint96 private loyaltyFee;
     address contractOwner;
@@ -32,7 +31,6 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         contractOwner = msg.sender;
         systemAddress = _systemAddress;
         mintingFeeRecipient = _mintingFeeRecipient;
-        //baseURILink = _baseURILink;
         mintingFee = _mintingFee;
         loyaltyFee = _loyaltyFee;
     }
@@ -53,7 +51,7 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
         _unpause();
     }
 
-    // set minting fee
+    // set minting fee, only contract creator can call
     function setMintingFee(uint256 _mintingFee) public  {
         require(contractOwner == msg.sender);
         mintingFee = _mintingFee;
@@ -91,7 +89,6 @@ contract MintPassNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burna
     }
 
     // The following functions are overrides required by Solidity.
-
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }

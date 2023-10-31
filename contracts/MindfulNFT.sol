@@ -17,10 +17,10 @@ interface burnMintPass{
 
 contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981 {
     
-    address private mintPass;
-    uint96 private loyaltyFee;
+    address private immutable mintPass;
+    uint96 private immutable loyaltyFee;
 
-    constructor(address _mintPass, uint96 _loyaltyFee) ERC721("MindfulNFT", "MINDFUL") {
+    constructor(address _mintPass, uint96 _loyaltyFee) ERC721("Mindful Ocean NFT", "MINDFUL") {
         mintPass = _mintPass;
         loyaltyFee = _loyaltyFee;
     }
@@ -35,7 +35,7 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
         _unpause();
     }
 
-    function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata _data) external returns(bytes4) {
+    function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata _data) external whenNotPaused returns(bytes4) {
 
         bool isBurned = false;
         string memory url = string(_data);

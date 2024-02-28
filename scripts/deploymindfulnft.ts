@@ -1,11 +1,12 @@
 import { ethers } from "hardhat";
 
-const mintPass = "0xc1cefC8C23906C3d9662dd40161EB31E7EA13FbE";
-const loyaltyFee = 100;
+const systemAddress = "0x4BCC679c78E2C6D724E49B2F59f0F3B0565854D9";
+const mintPass = "0xaa250f5d3a78518cd1A077391682388DA650963A";
+const loyaltyFee = 800;
 
 async function main() {
   const ContractFactory = await ethers.getContractFactory("contracts/MindfulNFT.sol:MindfulNFT");
-  const instance = await ContractFactory.deploy(mintPass, loyaltyFee);
+  const instance = await ContractFactory.deploy(systemAddress, mintPass, loyaltyFee);
   await instance.deployed();
 
   console.log(`Contract deployed to ${instance.address}`);

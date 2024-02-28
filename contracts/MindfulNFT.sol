@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 // declare burn & tokenURI interface
 interface burnMintPass{
@@ -15,14 +17,34 @@ interface burnMintPass{
   function tokenURI(uint256 tokenId) external view returns(string memory);
 }
 
-contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981 {
+contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnable, ERC2981, ReentrancyGuard {
+
+    using ECDSA for bytes32;
     
     address private immutable mintPass;
     uint96 private immutable loyaltyFee;
 
-    constructor(address _mintPass, uint96 _loyaltyFee) ERC721("Mindful Ocean NFT", "MINDFUL") {
+    address private immutable systemAddress;
+    address immutable contractOwner;
+
+    // Mapping of addresses who has been used
+    mapping(bytes32 => bool) public hashUsed;
+
+    // events
+    event tokenIdMinted(uint256 indexed tokenId);
+
+    // constructor takes the systemAddress (for signature verification), mintPass contract address & loyalty fee
+    constructor(address _systemAddress, address _mintPass, uint96 _loyaltyFee) ERC721("Mindful Ocean NFT", "MINDFUL") {
+        systemAddress = _systemAddress;
         mintPass = _mintPass;
         loyaltyFee = _loyaltyFee;
+        contractOwner = msg.sender;
+    }
+
+    // recover Signer from hash & signature
+    function recoverSigner(bytes32 hash, bytes memory signature) private pure returns (address) {
+        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
+        return ECDSA.recover(messageDigest, signature);
     }
 
     // pause minting action
@@ -33,6 +55,34 @@ contract MindfulNFT is ERC721, ERC721URIStorage, Pausable, Ownable, ERC721Burnab
     // unpause minting action
     function unpause() public onlyOwner {
         _unpause();
+    }
+
+    // mint MindfulOcean NFT
+    function mintMindfulNFT(bytes32 hash, bytes calldata signature, uint256 tokenId, string calldata uri, address to) public whenNotPaused nonReentrant returns(uint256){
+
+        // only contract owner can mintMintfulNFT in this way
+        require(msg.sender == contractOwner, "Must be owner of the contract");
+
+        // check if hash has been used
+        require(!hashUsed[hash], "Hash has been used");
+
+        // set the hash as used
+        hashUsed[hash] = true;
+
+        // check signature
+        require(recoverSigner(hash, signature) == systemAddress, "Signature Failed");
+
+        _safeMint(to, tokenId);
+
+        // set loyalty fee
+        _setTokenRoyalty(tokenId, msg.sender, loyaltyFee);
+
+        // set token URI
+        _setTokenURI(tokenId, uri);
+
+        emit tokenIdMinted(tokenId);
+
+        return tokenId;
     }
 
     function onERC721Received(address, address _from, uint256 _tokenId, bytes calldata _data) external whenNotPaused returns(bytes4) {

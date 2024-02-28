@@ -4,7 +4,8 @@ const API_KEY = "3iqNgDWSBHMkWq9vVT5GwGNuIJ_4vlbQ";
 const SYSTEM_PRIVATE_KEY = "78501fb8da333ed1c8312a2a4138bde909e280519157d5cac7e627222f2886b9";
 const CALLER_PRIVATE_KEY = "35322f3d9f56cf2f84592411ffacb71cf8d39ef3c7918a0358d4aebfec562989";
 const CONTRACT_ADDRESS = "0x54d7Eb7A94ED4A87542B4ABAb8Bb5e22dF299325";
-const url = "ipfs://bafyreifm457a6j647vd4b7g6oqwkyxvgzegpfwsg3hvd6wf6rk2ukhk7gq/metadata.json"; 
+const url = "ipfs://bafyreifm457a6j647vd4b7g6oqwkyxvgzegpfwsg3hvd6wf6rk2ukhk7gq/metadata.json";
+const tokenId = 0;
 
 const contract = require("../artifacts/contracts/MintPass.sol/MintPassNFT.json");
 
@@ -43,6 +44,8 @@ async function main() {
 	let messageBytes = ethers.utils.arrayify(messageHash);
 	let signature = await systemSigner.signMessage(messageBytes);
 	console.log("Signature: ", signature);
+	console.log("tokenId: ", tokenId);
+	console.log("url: ", url);
 	
 	// read the contract name
     const name = await MintPassNFTContract.name();    
@@ -50,8 +53,8 @@ async function main() {
 
 	// mint the mintPass
     console.log("Minting MintPass...");
-    const tx = await MintPassNFTContract.mintMintPass(messageHash, signature, url, {value: 100000000000000});
-	//const tx = await MintPassNFTContract.mintMintPass(messageHash, signature, url, {value: 200000000000000});
+    //const tx = await MintPassNFTContract.mintMintPass(messageHash, signature, tokenId, url, {value: 100000000000000});
+	const tx = await MintPassNFTContract.mintMintPass(messageHash, signature, url, {value: 200000000000000});
     console.log("tx: ", tx);
 
 }
